@@ -14,16 +14,19 @@
 ** or constant definition does not appear in this file, then it is
 ** not a published API of SQLite, is subject to change without
 ** notice, and should not be referenced by programs that use SQLite.
+** 此头文件定义了提供给调用者的接口和数据类型，没在此文件中定义的，SQLIite不提供保证在以后的版本中保持不变。
 **
 ** Some of the definitions that are in this file are marked as
 ** "experimental".  Experimental interfaces are normally new
 ** features recently added to SQLite.  We do not anticipate changes
 ** to experimental interfaces but reserve the right to make minor changes
 ** if experience from use "in the wild" suggest such changes are prudent.
+** 标明为experimental的定义，一般是新加入到SQLite中的。我们不期望去改变这些定义，但保留改变的可能。
 **
 ** The official C-language API documentation for SQLite is derived
 ** from comments in this file.  This file is the authoritative source
 ** on how SQLite interfaces are suppose to operate.
+** 官方的C语言API文档是从此文档中导出的。这个文件才是SQLite接口的权威。
 **
 ** The name of this file under configuration management is "sqlite.h.in".
 ** The makefile makes some minor changes to this file (such as inserting
@@ -56,10 +59,11 @@ extern "C" {
 
 /*
 ** These no-op macros are used in front of interfaces to mark those
-** interfaces as either deprecated or experimental.  New applications
+** interfaces as either deprecated不赞成 or experimental实验的.  New applications
 ** should not use deprecated interfaces - they are support for backwards
 ** compatibility only.  Application writers should be aware that
 ** experimental interfaces are subject to change in point releases.
+** 两个no-op宏标识了不赞成使用和实验的接口
 **
 ** These macros used to resolve to various kinds of compiler magic that
 ** would generate warning messages when they were used.  But that
