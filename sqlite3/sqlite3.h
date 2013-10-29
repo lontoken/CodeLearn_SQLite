@@ -1090,6 +1090,8 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** SQLITE_IOERR.  Or the implementation might recognize that a database
 ** file will be doing page-aligned sector reads and writes in a random
 ** order and set up its I/O subsystem accordingly.
+** 文件I/O的实现者可以通过对象类型标志改变处理文件的方式。比如，一个不关心破坏的恢复和回滚的应用，
+** 就对日志文件不产生影响。写日志文件也是no-ops操作。
 **
 ** SQLite might also add one of the following flags to the xOpen method:
 **
@@ -1102,6 +1104,8 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** deleted when it is closed.  ^The [SQLITE_OPEN_DELETEONCLOSE]
 ** will be set for TEMP databases and their journals, transient
 ** databases, and subjournals.
+** SQLITE_OPEN_DELETEONCLOSE标志指定文件会在关闭时被删除。一般在临时数据库和它们的日志文件、
+** 短暂的数据库等中设置。
 **
 ** ^The [SQLITE_OPEN_EXCLUSIVE] flag is always used in conjunction
 ** with the [SQLITE_OPEN_CREATE] flag, which are both directly
@@ -1111,6 +1115,9 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** be created, and that it is an error if it already exists.
 ** It is <i>not</i> used to indicate the file should be opened 
 ** for exclusive access.
+** SQLITE_OPEN_EXCLUSIVE标志一般和SQLITE_OPEN_CREATE标志一起使用。
+** 它们一起使用时，标志文件应该每次都被创建，如果文件已经存在则会报错。
+** SQLITE_OPEN_EXCLUSIVE不是用来标识文件被独占式访问。
 **
 ** ^At least szOsFile bytes of memory are allocated by SQLite
 ** to hold the  [sqlite3_file] structure passed as the third
@@ -1121,6 +1128,11 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** this even if the open fails.  SQLite expects that the sqlite3_file.pMethods
 ** element will be valid after xOpen returns regardless of the success
 ** or failure of the xOpen call.
+** SQLite至少应该分配szOsFile bytes的内存给xOpen的第3个参数指向的sqlite3_file结构体。
+** xOpen不会给结构体分配内存，它只是填充值。
+** xOpen必须给sqlite3_file.pMethods赋一个可用的sqlite3_io_methods对象或者空，即使open失败。
+** SQLite认为sqlite3_file.pMethods在调用xOpen之后是有效的，不论xOpen调用成功或失败。
+** 
 **
 ** [[sqlite3_vfs.xAccess]]
 ** ^The flags argument to xAccess() may be [SQLITE_ACCESS_EXISTS]
@@ -1128,6 +1140,9 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** test whether a file is readable and writable, or [SQLITE_ACCESS_READ]
 ** to test whether a file is at least readable.   The file can be a
 ** directory.
+** xAccess的标志参数如果是SQLITE_ACCESS_EXISTS，会测试文件是否存在；
+** 如果是SQLITE_ACCESS_READWRITE,测试文件是否可读可写；
+** 如果是SQLITE_ACCESS_READ，测试文件是否可读；
 **
 ** ^SQLite will always allocate at least mxPathname+1 bytes for the
 ** output buffer xFullPathname.  The exact size of the output buffer
@@ -1135,9 +1150,13 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** is not large enough, [SQLITE_CANTOPEN] should be returned. Since this is
 ** handled as a fatal error by SQLite, vfs implementations should endeavor
 ** to prevent this by setting mxPathname to a sufficiently large value.
+** xFullPathname方法中，SQLite总是至少分配mxPathname+1 bytes内存给输出的buffer。
+** 精确的输出buffer大小，也会通过参数返回。
+** 如果输出buffer没有足够大，SQLITE_CANTOPEN会返回。它是SQLite的错误标志。
+** vfs的实现应该如果避免这样，通过设置mxPathname为足够大的值。
 **
 ** The xRandomness(), xSleep(), xCurrentTime(), and xCurrentTimeInt64()
-** interfaces are not strictly a part of the filesystem, but they are
+** interfaces are not strictly严格 a part of the filesystem, but they are
 ** included in the VFS structure for completeness.
 ** The xRandomness() function attempts to return nBytes bytes
 ** of good-quality randomness into zOut.  The return value is
@@ -1156,11 +1175,11 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 **
 ** ^The xSetSystemCall(), xGetSystemCall(), and xNestSystemCall() interfaces
 ** are not used by the SQLite core.  These optional interfaces are provided
-** by some VFSes to facilitate testing of the VFS code. By overriding 
+** by some VFSes to facilitate促进 testing of the VFS code. By overriding 
 ** system calls with functions under its control, a test program can
 ** simulate faults and error conditions that would otherwise be difficult
 ** or impossible to induce.  The set of system calls that can be overridden
-** varies from one VFS to another, and from one version of the same VFS to the
+** varies from不同 one VFS to another, and from one version of the same VFS to the
 ** next.  Applications that use these interfaces must be prepared for any
 ** or all of these interfaces to be NULL or for their behavior to change
 ** from one release to the next.  Applications must not attempt to access
@@ -1212,7 +1231,7 @@ struct sqlite3_vfs {
 **
 ** These integer constants can be used as the third parameter to
 ** the xAccess method of an [sqlite3_vfs] object.  They determine
-** what kind of permissions the xAccess method is looking for.
+** what kind of permissions权限 the xAccess method is looking for.
 ** With SQLITE_ACCESS_EXISTS, the xAccess method
 ** simply checks whether the file exists.
 ** With SQLITE_ACCESS_READWRITE, the xAccess method
@@ -1226,6 +1245,7 @@ struct sqlite3_vfs {
 ** checks whether the file is readable.  The SQLITE_ACCESS_READ constant is
 ** currently unused, though it might be used in a future release of
 ** SQLite.
+** SQLITE_ACCESS_READ标志当前是不可用的。
 */
 #define SQLITE_ACCESS_EXISTS    0
 #define SQLITE_ACCESS_READWRITE 1   /* Used by PRAGMA temp_store_directory */
@@ -1238,6 +1258,7 @@ struct sqlite3_vfs {
 ** allowed by the xShmLock method of [sqlite3_io_methods].  The
 ** following are the only legal combinations of flags to the
 ** xShmLock method:
+** 这些标志组合是xShmLock函数唯一合法的取值；
 **
 ** <ul>
 ** <li>  SQLITE_SHM_LOCK | SQLITE_SHM_SHARED
@@ -1248,6 +1269,7 @@ struct sqlite3_vfs {
 **
 ** When unlocking, the same SHARED or EXCLUSIVE flag must be supplied as
 ** was given no the corresponding lock.  
+** 在解锁时SHARED或EXCLUSIVE必须和在锁定时提供的相匹配。
 **
 ** The xShmLock method can transition between unlocked and SHARED or
 ** between unlocked and EXCLUSIVE.  It cannot transition between SHARED
@@ -1278,6 +1300,10 @@ struct sqlite3_vfs {
 ** These routines are designed to aid in process initialization and
 ** shutdown on embedded systems.  Workstation applications using
 ** SQLite normally do not need to invoke either of these routines.
+** sqlite3_initialize()执行SQLite库的初始化。
+** sqlite3_shutdown()会释放由sqlite3_initialize()分配的资源。
+** 这些程序是设计用来补助在嵌入系统中进程里初始化和停止的。
+** 工作站式的系统通常不需要调用这些方法。
 **
 ** A call to sqlite3_initialize() is an "effective" call if it is
 ** the first time sqlite3_initialize() is invoked during the lifetime of
@@ -1285,17 +1311,21 @@ struct sqlite3_vfs {
 ** following a call to sqlite3_shutdown().  ^(Only an effective call
 ** of sqlite3_initialize() does any initialization.  All other calls
 ** are harmless no-ops.)^
+** 在进程的生命周期中，第一调用sqlite3_initialize()或调用sqlite3_shutdown()之后第一次调用sqlite3_initialize()才是有效的。
 **
 ** A call to sqlite3_shutdown() is an "effective" call if it is the first
 ** call to sqlite3_shutdown() since the last sqlite3_initialize().  ^(Only
 ** an effective call to sqlite3_shutdown() does any deinitialization.
 ** All other valid calls to sqlite3_shutdown() are harmless no-ops.)^
+** sqlite3_shutdown()只有在最后一个sqlite3_initialize()调用之后的第一次调用才是有效的。
 **
 ** The sqlite3_initialize() interface is threadsafe, but sqlite3_shutdown()
 ** is not.  The sqlite3_shutdown() interface must only be called from a
 ** single thread.  All open [database connections] must be closed and all
 ** other SQLite resources must be deallocated prior to invoking
 ** sqlite3_shutdown().
+** sqlite3_initialize()是线程安全的，但是sqlite3_shutdown()不是。
+** 在调用sqlite3_shutdown()之前，所有打开的链接必须被关闭，所有其它的资源必须被释放。
 **
 ** Among other things, ^sqlite3_initialize() will invoke
 ** sqlite3_os_init().  Similarly, ^sqlite3_shutdown()
@@ -1305,6 +1335,7 @@ struct sqlite3_vfs {
 ** ^If for some reason, sqlite3_initialize() is unable to initialize
 ** the library (perhaps it is unable to allocate a needed resource such
 ** as a mutex) it returns an [error code] other than [SQLITE_OK].
+** sqlite3_initialize()调用成功会返回SQLITE_OK，否则会返回错误代码，比如在不能分配需要的资源时会失败，比如mutex。
 **
 ** ^The sqlite3_initialize() routine is called internally by many other
 ** SQLite interfaces so that an application usually does not need to
@@ -1320,6 +1351,12 @@ struct sqlite3_vfs {
 ** of SQLite may require this.  In other words, the behavior exhibited
 ** when SQLite is compiled with [SQLITE_OMIT_AUTOINIT] might become the
 ** default behavior in some future release of SQLite.
+** sqlite3_initialize()程序会被一些SQLite的其它接口在内部调用，这样程序通常不需要直接调用它。
+** 比如，sqlite3_open()会调用sqlite3_initialize()，如果SQLite还没有被初始化，它会初始化。
+** 但是，如果SQLite以SQLITE_OMIT_AUTOINIT编译时选项编译时，自动调用sqlite3_initialize()
+** 会被省略，这样程序需要在调用SQLite的其它接口之前直接调用sqlite3_initialize()。
+** 为了最大的可移植性，我们应该在调用其它SQLite接口之前调用sqlite3_initialize()。
+** 在以后的版本中，SQLITE_OMIT_AUTOINIT可能会做为默认编译时选项。
 **
 ** The sqlite3_os_init() routine does operating-system specific
 ** initialization of the SQLite library.  The sqlite3_os_end()
@@ -1328,6 +1365,9 @@ struct sqlite3_vfs {
 ** of static resources, initialization of global variables,
 ** setting up a default [sqlite3_vfs] module, or setting up
 ** a default configuration using [sqlite3_config()].
+** sqlite3_os_init()程序做一些操作系统特殊的初始化，sqlite3_os_end()调用会消除调用sqlite3_os_init()的影响。
+** 它们的典型的任务包括分配和释放静态资源，初始化全局变量，设置默认的sqlite3_vfs()模块，
+** 通过调用sqlite3_config()设置默认的配置。
 **
 ** The application should never invoke either sqlite3_os_init()
 ** or sqlite3_os_end() directly.  The application should only invoke
@@ -1343,6 +1383,7 @@ struct sqlite3_vfs {
 ** implementation of sqlite3_os_init() or sqlite3_os_end()
 ** must return [SQLITE_OK] on success and some other [error code] upon
 ** failure.
+** 程序不应该直接调用sqlite3_os_end()和sqlite3_shutdown()，它们会在sqlite3_initialize()和sqlite3_shutdown()中自动调用。
 */
 SQLITE_API int sqlite3_initialize(void);
 SQLITE_API int sqlite3_shutdown(void);
@@ -1357,6 +1398,8 @@ SQLITE_API int sqlite3_os_end(void);
 ** the application.  The default configuration is recommended for most
 ** applications and so this routine is usually not necessary.  It is
 ** provided to support rare applications with unusual needs.
+** sqlite3_config()接口是用来配置SQLite的全局配置的，用以满足特殊的需求。
+** 默认的配置是给大多数应用推荐的，因为一般不需要调用sqlite3_config()。
 **
 ** The sqlite3_config() interface is not threadsafe.  The application
 ** must insure that no other SQLite interfaces are invoked by other
@@ -1367,12 +1410,16 @@ SQLITE_API int sqlite3_os_end(void);
 ** [sqlite3_shutdown()] then it will return SQLITE_MISUSE.
 ** Note, however, that ^sqlite3_config() can be called as part of the
 ** implementation of an application-defined [sqlite3_os_init()].
+** sqlite3_config()接口不是线程安全的，程序必须确保在调用此接口时SQLite的其它接口没有被其它线程调用。
+** 此外，sqlite3_config()只能在sqlite3_initialize()调用之前或sqlite3_shutdown()调用之后调用，
+** 否则，调用会返回SQLITE_MISUSE错误。
 **
 ** The first argument to sqlite3_config() is an integer
 ** [configuration option] that determines
 ** what property of SQLite is to be configured.  Subsequent arguments
 ** vary depending on the [configuration option]
 ** in the first argument.
+** 第1个参数指定要配置的参数，后面的参数依据于要配置的参数。
 **
 ** ^When a configuration option is set, sqlite3_config() returns [SQLITE_OK].
 ** ^If the option is unknown or SQLite is unable to set the option
@@ -1387,6 +1434,8 @@ SQLITE_API int sqlite3_config(int, ...);
 ** changes to a [database connection].  The interface is similar to
 ** [sqlite3_config()] except that the changes apply to a single
 ** [database connection] (specified in the first argument).
+** sqlite3_db_config()是用来配置数据库链接的，这个接口同sqlite3_config()类似，
+** 但是它只改变一个链接。
 **
 ** The second argument to sqlite3_db_config(D,V,...)  is the
 ** [SQLITE_DBCONFIG_LOOKASIDE | configuration verb] - an integer code 
