@@ -155,7 +155,7 @@ SQLITE_API int sqlite3_libversion_number(void);
 **
 ** ^The sqlite3_compileoption_used() function returns 0 or 1 
 ** indicating whether the specified option was defined at 
-** compile time.  ^The SQLITE_ prefix may be omitted from the 
+** compile time.  ^The SQLITE_ prefix may be omitted遗漏 from the 
 ** option name passed to sqlite3_compileoption_used().  
 **
 ** ^The sqlite3_compileoption_get() function allows iterating
@@ -192,12 +192,12 @@ SQLITE_API const char *sqlite3_compileoption_get(int N);
 ** to use SQLite concurrently from more than one thread.
 **
 ** Enabling mutexes incurs a measurable performance penalty.
-** So if speed is of utmost importance, it makes sense to disable
+** So if speed is of utmost极限 importance, it makes sense to disable
 ** the mutexes.  But for maximum safety, mutexes should be enabled.
 ** ^The default behavior is for mutexes to be enabled.
 **
 ** This interface can be used by an application to make sure that the
-** version of SQLite that it is linking against was compiled with
+** version of SQLite that it is linking against违反 was compiled with
 ** the desired setting of the [SQLITE_THREADSAFE] macro.
 **
 ** This interface only reports on the compile-time mutex setting
@@ -220,7 +220,7 @@ SQLITE_API int sqlite3_threadsafe(void);
 ** KEYWORDS: {database connection} {database connections}
 **
 ** Each open SQLite database is represented by a pointer to an instance of
-** the opaque structure named "sqlite3".  It is useful to think of an sqlite3
+** the opaque不透明 structure named "sqlite3".  It is useful to think of an sqlite3
 ** pointer as an object.  The [sqlite3_open()], [sqlite3_open16()], and
 ** [sqlite3_open_v2()] interfaces are its constructors, and [sqlite3_close()]
 ** and [sqlite3_close_v2()] are its destructors.  There are many other
@@ -239,7 +239,9 @@ typedef struct sqlite3 sqlite3;
 ** SQLite includes typedefs for 64-bit signed and unsigned integers.
 **
 ** The sqlite3_int64 and sqlite3_uint64 are the preferred type definitions.
+** sqlite3_int64和sqlite3_uint64类型的推荐使用的
 ** The sqlite_int64 and sqlite_uint64 types are supported for backwards
+** sqlite_int64和sqlite_uint64更多的是为了身后兼容
 ** compatibility only.
 **
 ** ^The sqlite3_int64 and sqlite_int64 types can store integer values
@@ -276,6 +278,7 @@ typedef sqlite_uint64 sqlite3_uint64;
 ** ^Calls to sqlite3_close() and sqlite3_close_v2() return SQLITE_OK if
 ** the [sqlite3] object is successfully destroyed and all associated
 ** resources are deallocated.
+** 返回SQLITE_OK：sqlite3对象和他关联的资源被释放。
 **
 ** ^If the database connection is associated with unfinalized prepared
 ** statements or unfinished sqlite3_backup objects then sqlite3_close()
@@ -287,15 +290,18 @@ typedef sqlite_uint64 sqlite3_uint64;
 ** finished.  The sqlite3_close_v2() interface is intended for use with
 ** host languages that are garbage collected, and where the order in which
 ** destructors are called is arbitrary.
+** 返回SQLITE_BUSY：链接还有关联的未完成的statements或未完成的sqlite3_backup。
+** sqlite3_close()：
+** sqlite3_close_v2()：此时数据库的链接变成不可用的zombie状态，在最后一个statements或sqlite3_backup完成后，它会自动释放。
 **
 ** Applications should [sqlite3_finalize | finalize] all [prepared statements],
 ** [sqlite3_blob_close | close] all [BLOB handles], and 
 ** [sqlite3_backup_finish | finish] all [sqlite3_backup] objects associated
-** with the [sqlite3] object prior to attempting to close the object.  ^If
+** with the [sqlite3] object prior优先 to attempting to close the object.  ^If
 ** sqlite3_close_v2() is called on a [database connection] that still has
 ** outstanding [prepared statements], [BLOB handles], and/or
 ** [sqlite3_backup] objects then it returns SQLITE_OK but the deallocation
-** of resources is deferred until all [prepared statements], [BLOB handles],
+** of resources is deferred推迟 until all [prepared statements], [BLOB handles],
 ** and [sqlite3_backup] objects are also destroyed.
 **
 ** ^If an [sqlite3] object is destroyed while a transaction is open,
@@ -316,6 +322,7 @@ SQLITE_API int sqlite3_close_v2(sqlite3*);
 ** The type for a callback function.
 ** This is legacy and deprecated.  It is included for historical
 ** compatibility and is not documented.
+** 这是一个遗弃和不千万使用的。
 */
 typedef int (*sqlite3_callback)(void*,int,char**, char**);
 
@@ -326,6 +333,8 @@ typedef int (*sqlite3_callback)(void*,int,char**, char**);
 ** [sqlite3_prepare_v2()], [sqlite3_step()], and [sqlite3_finalize()],
 ** that allows an application to run multiple statements of SQL
 ** without having to use a lot of C code. 
+** sqlite3_exec()是一个对sqlite3_prepare_v2()、sqlite3_step()和sqlite3_finalize()方便的包装。
+** 它允许程序执行多条SQL语句。
 **
 ** ^The sqlite3_exec() interface runs zero or more UTF-8 encoded,
 ** semicolon-separate SQL statements passed into its 2nd argument,
@@ -337,6 +346,10 @@ typedef int (*sqlite3_callback)(void*,int,char**, char**);
 ** callback invocation.  ^If the callback pointer to sqlite3_exec()
 ** is NULL, then no callback is ever invoked and result rows are
 ** ignored.
+** sqlite3_exec()执行0或更多的UTF-8编译的，使用分号分隔的SQL语句；
+** 第三个参数是一个callback function，如果不为空，它会在结果的每一行结果返回时被调用。
+** 第四个参数是每次调用回调函数时的第一个参数；
+** 如果回调指针为空，则不会回调会被执行，返回的数据行也被忽略。
 **
 ** ^If an error occurs while evaluating the SQL statements passed into
 ** sqlite3_exec(), then execution of the current statement stops and
@@ -349,10 +362,15 @@ typedef int (*sqlite3_callback)(void*,int,char**, char**);
 ** ^If the 5th parameter to sqlite3_exec() is not NULL and no errors
 ** occur, then sqlite3_exec() sets the pointer in its 5th parameter to
 ** NULL before returning.
+** 如果在执行传入的SQL语句出现错误时，后面的语句会被跳过，如果第5个参数不为空，
+** 所有的错误信息都会写入从sqlite3_malloc()获取的内存中，并通过第5个参数返回，
+** 为了避免内存泄漏，在不需要错误信息之后，应该调用sqlite3_free()。
+** 如果第5个参数不为空，且没有错误发生，sqlite3_exec()会在返回之前将第5个参数设置为NULL。
 **
 ** ^If an sqlite3_exec() callback returns non-zero, the sqlite3_exec()
 ** routine returns SQLITE_ABORT without invoking the callback again and
 ** without running any subsequent SQL statements.
+** 如果回调函数返回非0值，则sqlite3_exec()会直接返回SQLITE_ABORT，且不再执行回调函数和后面的SQL语句。
 **
 ** ^The 2nd argument to the sqlite3_exec() callback function is the
 ** number of columns in the result.  ^The 3rd argument to the sqlite3_exec()
@@ -362,7 +380,10 @@ typedef int (*sqlite3_callback)(void*,int,char**, char**);
 ** sqlite3_exec() callback is a NULL pointer.  ^The 4th argument to the
 ** sqlite3_exec() callback is an array of pointers to strings where each
 ** entry represents the name of corresponding result column as obtained
-** from [sqlite3_column_name()].
+** from [sqlite3_column_name()].  
+** 回调函数中的第2个函数是返回的数据的列数，第3个参数指向通过sqlite3_column_text()获取的字符数组，
+** 如果返回的数据为空，则其为NUU，
+** 第4个参数，指向通过sqlite3_column_name()获取的列名；
 **
 ** ^If the 2nd parameter to sqlite3_exec() is a NULL pointer, a pointer
 ** to an empty string, or a pointer that contains only whitespace and/or 
@@ -374,10 +395,13 @@ typedef int (*sqlite3_callback)(void*,int,char**, char**);
 ** <ul>
 ** <li> The application must insure that the 1st parameter to sqlite3_exec()
 **      is a valid and open [database connection].
+**      程序必须确保传给sqlite3_exec()的第1个参数，是一个可用的打开的数据库链接；
 ** <li> The application must not close [database connection] specified by
 **      the 1st parameter to sqlite3_exec() while sqlite3_exec() is running.
+**      在sqlite3_exec()执行的时候，对应的数据库链接不能关闭；
 ** <li> The application must not modify the SQL statement text passed into
 **      the 2nd parameter of sqlite3_exec() while sqlite3_exec() is running.
+**      在sqlite3_exec()执行的时候，系统不能修改传入的SQL语句；
 ** </ul>
 */
 SQLITE_API int sqlite3_exec(
@@ -397,6 +421,7 @@ SQLITE_API int sqlite3_exec(
 ** here in order to indicate success or failure.
 **
 ** New error codes may be added in future versions of SQLite.
+** 将来可能会有更多的错误代码添加进来；
 **
 ** See also: [SQLITE_IOERR_READ | extended result codes],
 ** [sqlite3_vtab_on_conflict()] [SQLITE_ROLLBACK | result codes].
@@ -630,6 +655,8 @@ SQLITE_API int sqlite3_exec(
 ** for their own use.  The pMethods entry is a pointer to an
 ** [sqlite3_io_methods] object that defines methods for performing
 ** I/O operations on the open file.
+** sqlite3_file对象代表了sqlite3_vfs或OS interface层的打开的文件。更独特的OS接口实现将作为其
+** 子类，添加成员来使用；sqlite3_io_methods定义了在打开文件上的操作。
 */
 typedef struct sqlite3_file sqlite3_file;
 struct sqlite3_file {
@@ -644,6 +671,8 @@ struct sqlite3_file {
 ** [sqlite3_file] object) with a pointer to an instance of this object.
 ** This object defines the methods used to perform various operations
 ** against the open file represented by the [sqlite3_file] object.
+** 每个通过sqlite3_vfs.xOpen打开的文件都构成了一个拥有指向此对象指针的实例，
+** 这个对象定义了打开的sqlite3_file代表的文件上可执行的操作。
 **
 ** If the [sqlite3_vfs.xOpen] method sets the sqlite3_file.pMethods element 
 ** to a non-NULL pointer, then the sqlite3_io_methods.xClose method
@@ -651,12 +680,17 @@ struct sqlite3_file {
 ** only way to prevent a call to xClose following a failed [sqlite3_vfs.xOpen]
 ** is for the [sqlite3_vfs.xOpen] to set the sqlite3_file.pMethods element
 ** to NULL.
+** 如果sqlite3_vfs.xOpen文件将sqlite3_file.pMethods置为不为空的指针，即使sqlite3_vfs.xOpen
+** 报告它失败，sqlite3_io_methods.xClose也会被执行。阻止sqlite3_vfs.xOpen调用失败后xClose的调用的方法是，
+** sqlite3_vfs.xOpen将sqlite3_file.pMethods置为NULL。
 **
 ** The flags argument to xSync may be one of [SQLITE_SYNC_NORMAL] or
 ** [SQLITE_SYNC_FULL].  The first choice is the normal fsync().
 ** The second choice is a Mac OS X style fullsync.  The [SQLITE_SYNC_DATAONLY]
 ** flag may be ORed in to indicate that only the data of the file
 ** and not its inode needs to be synced.
+** xSync的标志参数可能是SQLITE_SYNC_NORMAL或SQLITE_SYNC_FULL中的一个，前者是一般的fsync()，后者是Mac OS X风格的fullsync。
+** SQLITE_SYNC_DATAONLY标志指明只有文件的数据被同步，而不包括其节点。
 **
 ** The integer values to xLock() and xUnlock() are one of
 ** <ul>
@@ -671,7 +705,10 @@ struct sqlite3_file {
 ** either in this process or in some other process, is holding a RESERVED,
 ** PENDING, or EXCLUSIVE lock on the file.  It returns true
 ** if such a lock exists and false otherwise.
-**
+** xLock()增加锁，xUnlock()减少锁。xCheckReservedLock()检查是否有链接
+** 在当前线程或其它线程中持有文件的RESERVED、PENDING或EXCLUSIVE锁。
+** 如果有锁存在返回true，否则返回false。
+
 ** The xFileControl() method is a generic interface that allows custom
 ** VFS implementations to directly control an open file using the
 ** [sqlite3_file_control()] interface.  The second "op" argument is an
@@ -725,6 +762,9 @@ struct sqlite3_file {
 ** fails to zero-fill short reads might seem to work.  However,
 ** failure to zero-fill short reads will eventually lead to
 ** database corruption.
+** 如果xRead()返回SQLITE_IOERR_SHORT_READ，它必须将未读取的部分用0填充。
+** 一个VFS的zero-fill失败了可能看起来工作正常。但是，zero-fill失败最终会导致
+** 数据库的损坏。
 */
 typedef struct sqlite3_io_methods sqlite3_io_methods;
 struct sqlite3_io_methods {
@@ -759,6 +799,7 @@ struct sqlite3_io_methods {
 ** These integer constants are opcodes for the xFileControl method
 ** of the [sqlite3_io_methods] object and for the [sqlite3_file_control()]
 ** interface.
+** 这些整数常量是sqlite3_io_methods的sqlite3_io_methods方法和sqlite3_file_control()接口的操作码。
 **
 ** The [SQLITE_FCNTL_LOCKSTATE] opcode is used for debugging.  This
 ** opcode causes the xFileControl method to write the current state of
@@ -767,6 +808,8 @@ struct sqlite3_io_methods {
 ** into an integer that the pArg argument points to. This capability
 ** is used during testing and only needs to be supported when SQLITE_TEST
 ** is defined.
+** SQLITE_FCNTL_LOCKSTATE操作码用于调试。它会让xFileControl将当前锁的状态写入到pArg参数中。
+** 这个能力，只用于测试并且只有SQLITE_TEST定义之后才需要支持。
 ** <ul>
 ** <li>[[SQLITE_FCNTL_SIZE_HINT]]
 ** The [SQLITE_FCNTL_SIZE_HINT] opcode is used by SQLite to give the VFS
@@ -775,6 +818,8 @@ struct sqlite3_io_methods {
 ** is often close.  The underlying VFS might choose to preallocate database
 ** file space based on this hint in order to help writes to the database
 ** file run faster.
+** SQLITE_FCNTL_SIZE_HINT操作码暗示SQLite，在当前的事务中，VFS层的数据文件会变成多大。
+** 这个暗示是没有保证的，但是它经常关闭。
 **
 ** <li>[[SQLITE_FCNTL_CHUNK_SIZE]]
 ** The [SQLITE_FCNTL_CHUNK_SIZE] opcode is used to request that the VFS
@@ -784,6 +829,8 @@ struct sqlite3_io_methods {
 ** for the nominated database. Allocating database file space in large
 ** chunks (say 1MB at a time), may reduce file-system fragmentation and
 ** improve performance on some systems.
+** SQLITE_FCNTL_CHUNK_SIZE操作码用于请求VFS扩充或缩小数据库文件块的大小。
+** sqlite3_file_control的第4个参数指向一个整数的，其值为新的块大小。
 **
 ** <li>[[SQLITE_FCNTL_FILE_POINTER]]
 ** The [SQLITE_FCNTL_FILE_POINTER] opcode is used to obtain a pointer
@@ -943,6 +990,8 @@ struct sqlite3_io_methods {
 ** abstract type for a mutex object.  The SQLite core never looks
 ** at the internal representation of an [sqlite3_mutex].  It only
 ** deals with pointers to the [sqlite3_mutex] object.
+** sqlite3_mutex代表了SQLite的mutex的抽象。SQLite的核心不用关心其内部实现，
+** 它只是定义为一个指向sqlite3_mutex对象的指针。
 **
 ** Mutexes are created using [sqlite3_mutex_alloc()].
 */
