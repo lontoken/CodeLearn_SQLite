@@ -1004,6 +1004,7 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** the SQLite core and the underlying operating system.  The "vfs"
 ** in the name of the object stands for "virtual file system".  See
 ** the [VFS | VFS documentation] for further information.
+** sqlite3_vfs对象定义了SQLLite核心和操作系统层的接口。vfs指虚拟文件系统。
 **
 ** The value of the iVersion field is initially 1 but may be larger in
 ** future versions of SQLite.  Additional fields may be appended to this
@@ -1015,6 +1016,8 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** The szOsFile field is the size of the subclassed [sqlite3_file]
 ** structure used by this VFS.  mxPathname is the maximum length of
 ** a pathname in this VFS.
+** szOsFile标识了sqlite3_file子类的结构休大小。
+** mxPathname是VFS支持的路径名的最大长度。
 **
 ** Registered sqlite3_vfs objects are kept on a linked list formed by
 ** the pNext pointer.  The [sqlite3_vfs_register()]
@@ -1022,12 +1025,16 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** in a thread-safe way.  The [sqlite3_vfs_find()] interface
 ** searches the list.  Neither the application code nor the VFS
 ** implementation should use the pNext pointer.
+** sqllite3_vfs对象通过pNext指针保持链表结构，sqlite3_vfs_register()和sqlite3_vfs_unregister()接口通过线程安全的方式
+** 管理此链表。sqlite3_vfs_find()查询链表。不论是应用程序还是VFS的实现都不应该使用pNext。
 **
 ** The pNext field is the only field in the sqlite3_vfs
 ** structure that SQLite will ever modify.  SQLite will only access
 ** or modify this field while holding a particular static mutex.
 ** The application should never modify anything within the sqlite3_vfs
-** object once the object has been registered.
+** object once the object has been registered.    
+** pNext字段是sqlite3_vfs中SQLLite唯一会修改的。SQLite只在持有指定的mutex之后访问和修改此字段。
+** 在sqlite3_vfs对象被注释之后，应用程序不应用修改sqlite3_vfs。
 **
 ** The zName field holds the name of the VFS module.  The name must
 ** be unique across all VFS modules.
@@ -1048,6 +1055,11 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 ** must invent its own temporary name for the file.  ^Whenever the 
 ** xFilename parameter is NULL it will also be the case that the
 ** flags parameter will include [SQLITE_OPEN_DELETEONCLOSE].
+** SQLite保证传给xOpen的zFilename参数是一个空指针或者是一个通过xFullPathname()获取的带有一个可选前缀的字符串。
+** 如果在zFilename参数中添加前缀，它将由一个'-'和不超过11个字符组成。
+** SQLite还确保了字符串在xClose()调用之前是可用的且不变的。
+** 如果zFilename为空，xOpen会自己生成一个临时的文件名。
+** 只要zFilename为空，flags参数必须包含SQLITE_OPEN_DELETEONCLOSE标志。
 **
 ** The flags argument to xOpen() includes all bits set in
 ** the flags argument to [sqlite3_open_v2()].  Or if [sqlite3_open()]
