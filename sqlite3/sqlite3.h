@@ -2714,6 +2714,12 @@ SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 ** [sqlite3_errmsg()] or [sqlite3_errmsg16()] routines can be used to obtain
 ** an English language description of the error following a failure of any
 ** of the sqlite3_open() routines.
+** 这些程序通过filename参数打开指定的数据库文件。
+** filename参数在sqlite3_open()和sqlite3_open_v2()中被解释为UTF-8编码，在sqlite3_open16()被解释为UTF-16；
+** 通常一个数据库链接的句柄通过*ppDb返回，即使有错误发生。
+** 只在SQLite没有足够的内存分配给sqlite3对象时，*ppDb才会指向NULL；
+** 如果数据库打开或创建成功，返回SQLITE_OK，否则返回错误代码；
+** sqlite3_errmsg()和sqlite3_errmsg16()程序能获取英文描述的错误信息；
 **
 ** ^The default encoding for the database will be UTF-8 if
 ** sqlite3_open() or sqlite3_open_v2() is called and
@@ -2722,6 +2728,7 @@ SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 ** Whether or not an error occurs when it is opened, resources
 ** associated with the [database connection] handle should be released by
 ** passing it to [sqlite3_close()] when it is no longer required.
+** 不论打开操作是否有错误发生，都应该在不需要链接时调用sqlite3_close()以释放相应的资源。
 **
 ** The sqlite3_open_v2() interface works like sqlite3_open()
 ** except that it accepts two additional parameters for additional control
@@ -2730,22 +2737,30 @@ SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 ** the following three values, optionally combined with the 
 ** [SQLITE_OPEN_NOMUTEX], [SQLITE_OPEN_FULLMUTEX], [SQLITE_OPEN_SHAREDCACHE],
 ** [SQLITE_OPEN_PRIVATECACHE], and/or [SQLITE_OPEN_URI] flags:)^
+** sqlite3_open_v2()接口与sqlite3_open()类似，只是它通过两个额外的参数提供更多的控制。
+** sqlite3_open_v2()的flag参数可以为下面的组合：
+**      [SQLITE_OPEN_NOMUTEX], [SQLITE_OPEN_FULLMUTEX], [SQLITE_OPEN_SHAREDCACHE],
+**      [SQLITE_OPEN_PRIVATECACHE], and/or [SQLITE_OPEN_URI]
 **
 ** <dl>
 ** ^(<dt>[SQLITE_OPEN_READONLY]</dt>
 ** <dd>The database is opened in read-only mode.  If the database does not
 ** already exist, an error is returned.</dd>)^
+** SQLITE_OPEN_READONLY标志数据库以只读方式打开，如果数据库不存在，则会返回错误。
 **
 ** ^(<dt>[SQLITE_OPEN_READWRITE]</dt>
 ** <dd>The database is opened for reading and writing if possible, or reading
 ** only if the file is write protected by the operating system.  In either
 ** case the database must already exist, otherwise an error is returned.</dd>)^
+** SQLITE_OPEN_READWRITE标志数据库以读写方式打开，如果数据库不存在，则会返回错误。
 **
 ** ^(<dt>[SQLITE_OPEN_READWRITE] | [SQLITE_OPEN_CREATE]</dt>
 ** <dd>The database is opened for reading and writing, and is created if
 ** it does not already exist. This is the behavior that is always used for
 ** sqlite3_open() and sqlite3_open16().</dd>)^
 ** </dl>
+** SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE标志数据库以读方式打开，如果数据库不存在，则创建；
+** 这也是sqlite3_open()和sqlite3_open16()的方式；
 **
 ** If the 3rd parameter to sqlite3_open_v2() is not one of the
 ** combinations shown above optionally combined with other
@@ -2763,6 +2778,8 @@ SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 ** cache is enabled using [sqlite3_enable_shared_cache()].  ^The
 ** [SQLITE_OPEN_PRIVATECACHE] flag causes the database connection to not
 ** participate in [shared cache mode] even if it is enabled.
+** 如果设定SQLITE_OPEN_NOMUTEX标志，则数据库以多线程模式打开，即使在编译时和启动时设置了single-thread；
+×× 如果设定SQLITE_OPEN_FULLMUTEX标志，则数据库以序列化的线程模式打开；
 **
 ** ^The fourth parameter to sqlite3_open_v2() is the name of the
 ** [sqlite3_vfs] object that defines the operating system interface that
@@ -3185,6 +3202,7 @@ SQLITE_API int sqlite3_limit(sqlite3*, int id, int newVal);
 ** that is returned (the [sqlite3_stmt] object) contains a copy of the
 ** original SQL text. This causes the [sqlite3_step()] interface to
 ** behave differently in three ways:
+** sqlite3_prepare_v2()和sqlite3_prepare16_v2()接口是推荐使用的，其它两个旧接口只是为了保持身后兼容。
 **
 ** <ol>
 ** <li>
@@ -3674,7 +3692,7 @@ SQLITE_API const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
 ** new "v2" interface is recommended for new applications but the legacy
 ** interface will continue to be supported.
 **
-** ^In the legacy interface, the return value will be either [SQLITE_BUSY],
+** ^In the legacy遗产 interface, the return value will be either [SQLITE_BUSY],
 ** [SQLITE_DONE], [SQLITE_ROW], [SQLITE_ERROR], or [SQLITE_MISUSE].
 ** ^With the "v2" interface, any of the other [result codes] or
 ** [extended result codes] might be returned as well.
@@ -3729,7 +3747,7 @@ SQLITE_API const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
 ** error other than [SQLITE_BUSY] and [SQLITE_MISUSE].  You must call
 ** [sqlite3_reset()] or [sqlite3_finalize()] in order to find one of the
 ** specific [error codes] that better describes the error.
-** We admit that this is a goofy design.  The problem has been fixed
+** We admit that this is a goofy愚笨的 design.  The problem has been fixed
 ** with the "v2" interface.  If you prepare all of your SQL statements
 ** using either [sqlite3_prepare_v2()] or [sqlite3_prepare16_v2()] instead
 ** of the legacy [sqlite3_prepare()] and [sqlite3_prepare16()] interfaces,
